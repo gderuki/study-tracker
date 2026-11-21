@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>lv.gderuki</groupId>
-    <artifactId>study-tracker</artifactId>
+    <artifactId>study-tracker-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>study-tracker</name>
     <description>study-tracker</description>
