@@ -1,5 +1,6 @@
 package lv.gderuki.studytracker.controller;
 
+import lombok.RequiredArgsConstructor;
 import lv.gderuki.studytracker.dto.StudyTopicDto;
 import lv.gderuki.studytracker.mapper.StudyTopicMapper;
 import lv.gderuki.studytracker.service.StudyTopicService;
@@ -11,17 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/")
 public class StudyTopicController {
 
     private final StudyTopicService service;
     private final StudyTopicMapper mapper;
-
-    public StudyTopicController(StudyTopicService service, StudyTopicMapper mapper) {
-        this.service = service;
-        this.mapper = mapper;
-    }
 
     @GetMapping(path = "/topics")
     public List<StudyTopicDto> getAllStudyTopics() {
