@@ -19,7 +19,9 @@ services:
     build: ./backend
     ports:
       - "127.0.0.1:8080:8080"
+      - "127.0.0.1:5005:5005"
     environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}

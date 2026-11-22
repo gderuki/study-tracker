@@ -13,7 +13,7 @@ public class StudySession {
     @ToString.Include
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
     @Column(nullable = false)
     private Instant startTime;
     private Instant endTime;
