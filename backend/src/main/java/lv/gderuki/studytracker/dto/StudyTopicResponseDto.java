@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class StudyTopicDto {
+public class StudyTopicResponseDto {
     private Long id;
     private String title;
     private String category;

@@ -1,8 +1,8 @@
 package lv.gderuki.studytracker.controller;
 
 import lombok.RequiredArgsConstructor;
-import lv.gderuki.studytracker.dto.StudyTopicDto;
-import lv.gderuki.studytracker.mapper.StudyTopicMapper;
+import lv.gderuki.studytracker.dto.StudyTopicResponseDto;
+import lv.gderuki.studytracker.mapper.StudyTrackerMapper;
 import lv.gderuki.studytracker.service.StudyTopicService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,16 +18,16 @@ import java.util.List;
 public class StudyTopicController {
 
     private final StudyTopicService service;
-    private final StudyTopicMapper mapper;
+    private final StudyTrackerMapper mapper;
 
     @GetMapping(path = "/topics")
-    public List<StudyTopicDto> getAllStudyTopics() {
-        return service.getAllStudyTopics().stream().map(mapper::mapEntityToDto).toList();
+    public List<StudyTopicResponseDto> getAllStudyTopics() {
+        return service.getAllStudyTopics().stream().map(mapper::mapStudyTopicEntityToDto).toList();
     }
 
     @GetMapping("/topics/{id}")
-    public ResponseEntity<StudyTopicDto> getStudyTopicById(@PathVariable("id") Long id) {
-        return ResponseEntity.of(service.getStudyTopicById(id).map(mapper::mapEntityToDto));
+    public ResponseEntity<StudyTopicResponseDto> getStudyTopicById(@PathVariable("id") Long id) {
+        return ResponseEntity.of(service.getStudyTopicById(id).map(mapper::mapStudyTopicEntityToDto));
     }
 
 }
