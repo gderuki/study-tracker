@@ -1,0 +1,2 @@
+ALTER TABLE study_session
+    ADD CONSTRAINT FK_STUDYSESSION_ON_TOPIC FOREIGN KEY (topic_id) REFERENCES study_topic (id);
