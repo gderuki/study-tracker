@@ -7,10 +7,7 @@ import lv.gderuki.studytracker.mapper.StudyTrackerMapper;
 import lv.gderuki.studytracker.service.StudySessionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @AllArgsConstructor
 @RestController
@@ -28,6 +25,14 @@ public class StudySessionController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @GetMapping("/sessions/active")
+    public ResponseEntity<StudySessionResponseDto> getActiveSession() {
+        return studySessionService.findActiveSession()
+                .map(mapper::mapStudySessionEntityToDto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
 }

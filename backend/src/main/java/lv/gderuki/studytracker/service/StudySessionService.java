@@ -10,6 +10,7 @@ import lv.gderuki.studytracker.repository.StudyTopicRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -33,6 +34,10 @@ public class StudySessionService {
                 studyTopic,
                 SessionStatus.STARTED
         ));
+    }
+
+    public Optional<StudySession> findActiveSession() {
+        return studySessionRepository.findStudySessionByStatus(SessionStatus.STARTED);
     }
 
 }
