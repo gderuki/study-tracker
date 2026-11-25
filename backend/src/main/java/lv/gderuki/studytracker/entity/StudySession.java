@@ -2,6 +2,7 @@ package lv.gderuki.studytracker.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lv.gderuki.studytracker.exception.InvalidSessionStateException;
 
 import java.time.Instant;
 
@@ -23,4 +24,18 @@ public class StudySession {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SessionStatus status;
+
+    public void completeSession(Instant completedAt) {
+        if (this.status != SessionStatus.STARTED) {
+            throw new InvalidSessionStateException("Only a started session can be completed");
+        }
+
+        if (completedAt == null || completedAt.isBefore(this.startTime)) {
+            throw new IllegalArgumentException(
+                    "Completion time must not be null or before start time");
+        }
+
+        this.status = SessionStatus.COMPLETED;
+        this.endTime = completedAt;
+    }
 }

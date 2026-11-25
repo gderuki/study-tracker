@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @AllArgsConstructor
 @RestController
-@RequestMapping("/api/")
+@RequestMapping("/api")
 public class StudySessionController {
 
     private final StudySessionService studySessionService;
@@ -33,6 +33,14 @@ public class StudySessionController {
                 .map(mapper::mapStudySessionEntityToDto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/sessions/{sessionId}/complete")
+    public ResponseEntity<StudySessionResponseDto> completeSession(@PathVariable("sessionId") Long sessionId) {
+        var session = studySessionService.completeSession(sessionId);
+        var response = mapper.mapStudySessionEntityToDto(session);
+
+        return ResponseEntity.ok(response);
     }
 
 }

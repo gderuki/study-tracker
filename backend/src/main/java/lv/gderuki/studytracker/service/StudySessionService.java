@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lv.gderuki.studytracker.entity.SessionStatus;
 import lv.gderuki.studytracker.entity.StudySession;
 import lv.gderuki.studytracker.exception.ActiveSessionAlreadyExistsException;
+import lv.gderuki.studytracker.exception.SessionNotFoundException;
 import lv.gderuki.studytracker.exception.TopicNotFoundException;
 import lv.gderuki.studytracker.repository.StudySessionRepository;
 import lv.gderuki.studytracker.repository.StudyTopicRepository;
@@ -47,6 +48,15 @@ public class StudySessionService {
 
     public Optional<StudySession> findActiveSession() {
         return studySessionRepository.findStudySessionByStatus(SessionStatus.STARTED);
+    }
+
+    public StudySession completeSession(Long sessionId) {
+        var session = studySessionRepository.findById(sessionId)
+                .orElseThrow(() -> new SessionNotFoundException("Session not found!"));
+
+        session.completeSession(Instant.now());
+
+        return studySessionRepository.save(session);
     }
 
 }

@@ -245,4 +245,192 @@ public class StudySessionIntegrationTest {
         assertNull(activeSession.getEndTime());
     }
 
+    @Test
+    void shouldCompleteStartedSession() {
+        var topic = studyTopicRepository.findAll().stream()
+                .filter(t -> t.getIsNiceToHave().equals(false))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No topic found!"));
+
+        var response = restTestClient.post()
+                .uri("/api/sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("topicId", topic.getId()))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        var body = response.getResponseBody();
+        assertNotNull(body);
+        Number sessionId = JsonPath.read(new String(body, StandardCharsets.UTF_8), "$.id");
+
+        restTestClient.post()
+                .uri("/api/sessions/{sessionId}/complete", sessionId.longValue())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(sessionId.longValue())
+                .jsonPath("$.status").isEqualTo("COMPLETED")
+                .jsonPath("$.endTime").isNotEmpty();
+
+        var savedSession = studySessionRepository.findById(sessionId.longValue())
+                .orElseThrow(() -> new AssertionError("Completed session not found"));
+
+        assertEquals(SessionStatus.COMPLETED, savedSession.getStatus());
+        assertNotNull(savedSession.getEndTime());
+        assertFalse(savedSession.getEndTime().isBefore(savedSession.getStartTime()));
+        assertEquals(1L, studySessionRepository.count());
+        assertFalse(studySessionRepository.existsByStatus(SessionStatus.STARTED));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenCompletingMissingSession() {
+        var topic = studyTopicRepository.findAll().stream()
+                .filter(t -> t.getIsNiceToHave().equals(false))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No topic found!"));
+
+        var response = restTestClient.post()
+                .uri("/api/sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("topicId", topic.getId()))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        var body = response.getResponseBody();
+        assertNotNull(body);
+        Number sessionId = JsonPath.read(new String(body, StandardCharsets.UTF_8), "$.id");
+
+        long nonExistentSessionId = -1L;
+        assertFalse(studySessionRepository.existsById(nonExistentSessionId));
+        restTestClient.post()
+                .uri("/api/sessions/{sessionId}/complete", nonExistentSessionId)
+                .exchange()
+                .expectStatus().isNotFound();
+
+        var savedSession = studySessionRepository.findById(sessionId.longValue())
+                .orElseThrow(() -> new AssertionError("Original session not found"));
+
+        assertEquals(SessionStatus.STARTED, savedSession.getStatus());
+        assertNull(savedSession.getEndTime());
+        assertEquals(1L, studySessionRepository.count());
+    }
+
+    @Test
+    void shouldRejectCompletingAlreadyCompletedSession() {
+        var topic = studyTopicRepository.findAll().stream()
+                .filter(t -> t.getIsNiceToHave().equals(false))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No topic found!"));
+
+        var response = restTestClient.post()
+                .uri("/api/sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("topicId", topic.getId()))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        var body = response.getResponseBody();
+        assertNotNull(body);
+        Number sessionId = JsonPath.read(new String(body, StandardCharsets.UTF_8), "$.id");
+
+        restTestClient.post()
+                .uri("/api/sessions/{sessionId}/complete", sessionId.longValue())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(sessionId.longValue())
+                .jsonPath("$.status").isEqualTo("COMPLETED")
+                .jsonPath("$.endTime").isNotEmpty();
+
+        var savedSession = studySessionRepository.findById(sessionId.longValue())
+                .orElseThrow(() -> new AssertionError("Completed session not found"));
+
+        assertEquals(SessionStatus.COMPLETED, savedSession.getStatus());
+
+        var originalEndTime = savedSession.getEndTime();
+        assertNotNull(originalEndTime);
+
+        restTestClient.post()
+                .uri("/api/sessions/{sessionId}/complete", sessionId.longValue())
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.CONFLICT);
+
+        var sessionAfterRepeatedCompletion = studySessionRepository.findById(sessionId.longValue())
+                .orElseThrow(() -> new AssertionError("Completed session not found"));
+
+        assertEquals(originalEndTime, sessionAfterRepeatedCompletion.getEndTime());
+        assertEquals(SessionStatus.COMPLETED, sessionAfterRepeatedCompletion.getStatus());
+        assertEquals(1L, studySessionRepository.count());
+
+        assertFalse(studySessionRepository.existsByStatus(SessionStatus.STARTED));
+    }
+
+    @Test
+    void shouldAllowStartingNewSessionAfterCompletion() {
+        var topic = studyTopicRepository.findAll().stream()
+                .filter(t -> t.getIsNiceToHave().equals(false))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No topic found!"));
+
+        var firstResponse = restTestClient.post()
+                .uri("/api/sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("topicId", topic.getId()))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        var firstResponseBody = firstResponse.getResponseBody();
+        assertNotNull(firstResponseBody);
+        Number firstSessionId = JsonPath.read(new String(firstResponseBody, StandardCharsets.UTF_8), "$.id");
+
+        restTestClient.post()
+                .uri("/api/sessions/{sessionId}/complete", firstSessionId.longValue())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(firstSessionId.longValue())
+                .jsonPath("$.status").isEqualTo("COMPLETED")
+                .jsonPath("$.endTime").isNotEmpty();
+
+        var firstSession = studySessionRepository.findById(firstSessionId.longValue())
+                .orElseThrow(() -> new AssertionError("Completed session not found"));
+
+        assertEquals(SessionStatus.COMPLETED, firstSession.getStatus());
+
+        var secondResponse = restTestClient.post()
+                .uri("/api/sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("topicId", topic.getId()))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        var secondResponseBody = secondResponse.getResponseBody();
+        assertNotNull(secondResponseBody);
+        Number secondSessionId = JsonPath.read(new String(secondResponseBody, StandardCharsets.UTF_8), "$.id");
+
+        var secondSession = studySessionRepository.findById(secondSessionId.longValue())
+                .orElseThrow(() -> new AssertionError("New active session not found"));
+
+        var firstSessionAfterNewStart = studySessionRepository.findById(firstSessionId.longValue())
+                .orElseThrow(() -> new AssertionError("Original completed session not found"));
+
+        assertNotEquals(firstSessionId.longValue(), secondSessionId.longValue());
+        assertEquals(SessionStatus.COMPLETED, firstSessionAfterNewStart.getStatus());
+        assertEquals(firstSession.getEndTime(), firstSessionAfterNewStart.getEndTime());
+        assertNull(secondSession.getEndTime());
+        assertEquals(topic.getId(), secondSession.getTopic().getId());
+        assertEquals(SessionStatus.STARTED, secondSession.getStatus());
+        assertEquals(2L, studySessionRepository.count());
+    }
+
 }

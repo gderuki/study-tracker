@@ -1,6 +1,8 @@
 package lv.gderuki.studytracker.controller.advice;
 
 import lv.gderuki.studytracker.exception.ActiveSessionAlreadyExistsException;
+import lv.gderuki.studytracker.exception.InvalidSessionStateException;
+import lv.gderuki.studytracker.exception.SessionNotFoundException;
 import lv.gderuki.studytracker.exception.TopicNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,24 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ActiveSessionAlreadyExistsException.class)
     public ResponseEntity<String> handleActiveSessionAlreadyExistsException(
             ActiveSessionAlreadyExistsException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(exception.getMessage());
+    }
+
+    @ExceptionHandler(SessionNotFoundException.class)
+    public ResponseEntity<String> handleSessionNotFoundException(
+            SessionNotFoundException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSessionStateException.class)
+    public ResponseEntity<String> handleInvalidSessionStateException(
+            InvalidSessionStateException exception
     ) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
