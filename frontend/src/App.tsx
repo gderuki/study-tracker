@@ -41,6 +41,9 @@ function App() {
   const [sessionAttempt, setSessionAttempt] = useState(0)
   const [startingTopicId, setStartingTopicId] = useState<number | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
+  const [completingSession, setCompletingSession] = useState(false)
+  const [completionError, setCompletionError] = useState<string | null>(null)
+  const [completionMessage, setCompletionMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -60,9 +63,11 @@ function App() {
   }
 
   async function startSession(topicId: number) {
-    if (startingTopicId !== null || sessionState.status !== 'success' || sessionState.session) return
+    if (startingTopicId !== null || completingSession || sessionState.status !== 'success' || sessionState.session) return
     setStartingTopicId(topicId)
     setStartError(null)
+    setCompletionError(null)
+    setCompletionMessage(null)
     try {
       const response = await fetch('/api/sessions', {
         method: 'POST',
@@ -90,8 +95,34 @@ function App() {
     }
   }
 
+  async function completeSession() {
+    if (completingSession || startingTopicId !== null || sessionState.status !== 'success' || !sessionState.session) return
+    const sessionId = sessionState.session.id
+    setCompletingSession(true)
+    setCompletionError(null)
+    setCompletionMessage(null)
+    setStartError(null)
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/complete`, { method: 'POST' })
+      if (response.status === 404 || response.status === 409) {
+        setCompletionError(response.status === 404
+          ? 'Занятие больше не найдено. Обновляем текущее состояние.'
+          : 'Состояние занятия уже изменилось. Обновляем текущее состояние.')
+        return
+      }
+      if (response.status !== 200) throw new Error('Could not complete session')
+      setCompletionMessage('Занятие завершено.')
+    } catch {
+      setCompletionError('Не удалось подтвердить завершение занятия. Проверяем его состояние перед повторной попыткой.')
+    } finally {
+      // Reconcile even when the response is lost: the server may have completed the session.
+      reloadSession()
+      setCompletingSession(false)
+    }
+  }
+
   const activeSession = sessionState.status === 'success' ? sessionState.session : null
-  const cannotStart = sessionState.status !== 'success' || activeSession !== null || startingTopicId !== null
+  const cannotStart = sessionState.status !== 'success' || activeSession !== null || startingTopicId !== null || completingSession
 
   useEffect(() => {
     const controller = new AbortController()
@@ -135,10 +166,10 @@ function App() {
           </button>
         </div>
 
-        <section className="session-panel notice" aria-labelledby="session-heading" aria-busy={sessionState.status === 'loading'}>
+        <section className="session-panel notice" aria-labelledby="session-heading" aria-busy={sessionState.status === 'loading' || completingSession}>
           <div className="session-heading">
             <h2 id="session-heading">Текущее занятие</h2>
-            <button onClick={reloadSession} disabled={sessionState.status === 'loading' || startingTopicId !== null}>Обновить занятие</button>
+            <button onClick={reloadSession} disabled={sessionState.status === 'loading' || startingTopicId !== null || completingSession}>Обновить занятие</button>
           </div>
           <div aria-live="polite">
             {sessionState.status === 'loading' && <p role="status">Проверяем активное занятие…</p>}
@@ -148,10 +179,15 @@ function App() {
               <p className="session-topic">{activeSession.studyTopic.title}</p>
               <p><span className="badge">В процессе · {activeSession.status}</span></p>
               <p className="session-time">Начало: <time dateTime={activeSession.startTime}>{new Date(activeSession.startTime).toLocaleString('ru-RU')}</time></p>
-              <p>Сначала заверши текущее занятие, прежде чем начинать новое. Управление завершением появится позже.</p>
+              <p>Заверши текущее занятие, чтобы начать новое.</p>
+              <button className="complete-button" onClick={() => void completeSession()} disabled={completingSession || startingTopicId !== null}>
+                {completingSession ? 'Завершаем…' : 'Завершить занятие'}
+              </button>
             </>}
           </div>
           {startError && <p className="start-error" role="alert">{startError}</p>}
+          {completionError && <p className="start-error" role="alert">{completionError}</p>}
+          {completionMessage && <p className="completion-message" role="status">{completionMessage}</p>}
         </section>
 
         <div aria-live="polite" aria-atomic="true">

@@ -29,6 +29,9 @@ h2 { font-size: 1.3rem; line-height: 1.35; margin-bottom: 14px; }
 .session-time { margin: 16px 0 8px; color: #485a72; }
 .start-error { margin-top: 16px; color: #9b3030; }
 .start-button { margin-top: 24px; }
+.complete-button { margin-top: 16px; background: #315fa8; border-color: #315fa8; color: #fff; }
+.complete-button:hover:enabled { background: #244b84; }
+.completion-message { margin-top: 16px; color: #245a43; }
 button:disabled { opacity: .6; cursor: not-allowed; }
 footer { padding: 24px 0; border-top: 1px solid #dce3ed; color: #53647b; font-size: .875rem; }
 @media (max-width: 720px) {
